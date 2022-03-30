@@ -23,7 +23,7 @@ BEGIN
     dbms_output.put_line(substr(primelist, 1, length(primelist) - 2)
                          || '.');
 
-END; -- This results in a string with all the prime numbers in the range in them.
+END; -- This results in a string containing all the prime numbers from the range.
 
 CREATE GLOBAL TEMPORARY TABLE primelist (
     prime NUMBER(6)
