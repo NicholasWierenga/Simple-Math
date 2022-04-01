@@ -4,9 +4,7 @@ CREATE TABLE primelist (
     prime NUMBER(6)
 );
 
-DROP TABLE primelist;
-
-DECLARE
+DECLARE -- This finds primes and returns them in a string.
     primenum   INTEGER(6) := 0;
     primecount INTEGER(6) := 0;
     primelist  VARCHAR2(10000) := 'The primes in this range are: ';
@@ -20,17 +18,16 @@ BEGIN
             END IF;
 
             IF x MOD y = 0 THEN
-                EXIT; --to exit the inner loop after a factor of x is found
+                EXIT;
             END IF;
         END LOOP;
     END LOOP;
 
     dbms_output.put_line(substr(primelist, 1, length(primelist) - 2) || '.');
 
-END; -- This results in a string with all the prime numbers in the range in it.
+END; 
 
-
---This is the above block, but inserts the list into Primelist instead of a string.
+--This is the above block, but inserts the list into primelist instead of a string.
 
 DECLARE
     primenum INTEGER(6) := 0;
@@ -50,16 +47,18 @@ BEGIN
     END LOOP;
 END;
 
-CREATE SEQUENCE seq1 INCREMENT BY 1;
+SELECT prime FROM primelist;
 
-DROP SEQUENCE seq1;
+DROP TABLE primelist PURGE;
+
+------------------------------------------------------------------------------
+
+CREATE SEQUENCE seq1 INCREMENT BY 1;
 
 CREATE TABLE primelist (
     prime   NUMBER(6),
     tabrows NUMBER(6) DEFAULT seq1.NEXTVAL
 );
-
-DROP TABLE primelist;
 
 DECLARE -- This accomplishes what the above block does, but much slower.
     tableprime INTEGER(6); -- It takes the test number and mods it with previous primes in the table.
@@ -104,14 +103,39 @@ BEGIN
 
 END;
 
+SELECT prime FROM primelist;
+
+DROP SEQUENCE seq1;
+
+DROP TABLE primelist PURGE;
+
+-------------------------------------------------------------------------------
+
+-- Below is another way of generating primes, but only requires SQL.
+-- The idea is the same as above, but it runs much faster.
+
 CREATE TABLE primelist (
     prime NUMBER(6)
 );
 
-DROP TABLE primelist;
+INSERT INTO primelist ( prime )
+    SELECT ROWNUM
+    FROM col$ -- Pick some large-rowed table or start cross joining if you need more rows for some reason.
+    FETCH FIRST 10000 ROWS ONLY; -- Change to expand range.
 
-DECLARE -- Below can test for prime using a specific number using values from the table.
-    testprime NUMBER(6) := 81;
+DELETE FROM primelist a 
+WHERE EXISTS ( -- We use a correlated subquery to delete non-primes.
+    SELECT b.prime 
+    FROM primelist b
+    WHERE mod(a.prime, b.prime) = 0 AND a.prime > b.prime AND b.prime <> 1
+) OR a.prime = 1;
+
+SELECT prime FROM primelist;
+
+-- Below can test for prime using a specific number using values from the table.
+
+DECLARE 
+    testprime NUMBER(6) := 5;
     primes    NUMBER(6);
 BEGIN
     INSERT INTO primelist VALUES ( 0 );
@@ -131,3 +155,6 @@ BEGIN
     END IF;
 
 END;
+
+DROP TABLE primelist PURGE;
+
