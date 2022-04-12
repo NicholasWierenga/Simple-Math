@@ -1,3 +1,10 @@
+/*
+This is my git full of a bunch of methods related to prime numbers.
+Many of these are slow, poorly coded, and unnecessarily complicated.
+I coded these and maybe I'll try to better them later, but math done 
+poorly can still be interesting.
+*/
+
 SET SERVEROUTPUT ON;
 
 CREATE TABLE primelist (
@@ -7,9 +14,9 @@ CREATE TABLE primelist (
 DECLARE -- This finds primes and returns them in a string.
     primenum   INTEGER(6) := 0;
     primecount INTEGER(6) := 0;
-    primelist  VARCHAR2(10000) := 'The primes in this range are: ';
+    primelist  VARCHAR2(32767) := 'The primes in this range are: ';
 BEGIN
-    FOR x IN 1..10000 LOOP
+    FOR x IN 1..40000 LOOP
         FOR y IN 2..x LOOP
             IF y = x THEN
                 primenum := x;
@@ -27,12 +34,13 @@ BEGIN
 
 END; 
 
---This is the above block, but inserts the list into primelist instead of a string.
+-- This is the above block, but inserts the list into primelist instead of a string.
+-- It took about a minute to sort through 70000 numbers.
 
 DECLARE
-    primenum INTEGER(6) := 0;
+    primenum INTEGER(9) := 0;
 BEGIN
-    FOR x IN 1..10000 LOOP
+    FOR x IN 1..70000 LOOP
         FOR y IN 2..x LOOP
             IF y = x THEN
                 primenum := x;
@@ -52,6 +60,8 @@ SELECT prime FROM primelist;
 DROP TABLE primelist PURGE;
 
 ------------------------------------------------------------------------------
+
+-- This took about a minute to get through the 17000 numbers.
 
 CREATE SEQUENCE seq1 INCREMENT BY 1;
 
@@ -75,7 +85,7 @@ BEGIN
     FROM primelist;
 
     maxrow := maxrow + currrow;
-    FOR n IN 3..10000 LOOP
+    FOR n IN 3..17000 LOOP
         SELECT MIN(tabrows)
         INTO currrow
         FROM primelist;
@@ -111,8 +121,50 @@ DROP TABLE primelist PURGE;
 
 -------------------------------------------------------------------------------
 
--- Below is another way of generating primes, but only requires SQL.
--- The idea is the same as above, but it runs much faster.
+-- This was one of the better ones and took about a minute to get through 110k rows. 
+
+CREATE TABLE numlist (
+    nums INTEGER
+);
+
+INSERT INTO numlist ( nums )
+    SELECT ROWNUM
+    FROM col$ -- Pick some large-rowed table and cross join to it to itself.
+    CROSS JOIN (
+        SELECT ROWNUM
+        FROM col$
+        FETCH FIRST 100 ROWS ONLY)
+    FETCH FIRST 110000 ROWS ONLY; 
+
+DECLARE
+    prime INTEGER := 0;
+BEGIN
+    DELETE FROM numlist
+    WHERE nums = 1;
+
+    WHILE prime IS NOT NULL LOOP
+        
+        EXECUTE IMMEDIATE 'DELETE FROM numlist
+        WHERE mod(nums, ' || prime || ') = 0 AND ' || prime || ' <> nums'; -- Deletes all numbers that have prime as a factor.
+
+        SELECT MIN(nums)
+        INTO prime
+        FROM numlist
+        WHERE nums > prime; -- We pick the next number in the table, 
+                            -- which is prime due to it not being deleted by all previous primes used.
+
+    END LOOP;
+
+END;
+
+SELECT nums AS "Primes"
+FROM numlist;
+
+DROP TABLE numlist PURGE;
+
+-------------------------------------------------------------------------------
+
+-- This took about a minute to get through 70000.
 
 CREATE TABLE primelist (
     prime NUMBER(6)
@@ -121,7 +173,7 @@ CREATE TABLE primelist (
 INSERT INTO primelist ( prime )
     SELECT ROWNUM
     FROM col$ -- Pick some large-rowed table or start cross joining if you need more rows for some reason.
-    FETCH FIRST 10000 ROWS ONLY; -- Change to expand range.
+    FETCH FIRST 70000 ROWS ONLY; -- Change to expand range.
 
 DELETE FROM primelist a 
 WHERE EXISTS ( -- We use a correlated subquery to delete non-primes.
