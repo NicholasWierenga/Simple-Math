@@ -1,8 +1,6 @@
 /*
 This is my git full of a bunch of methods related to prime numbers.
 Many of these are slow, poorly coded, and unnecessarily complicated.
-I coded these and maybe I'll try to better them later, but math done 
-poorly can still be interesting.
 */
 
 SET SERVEROUTPUT ON;
@@ -72,10 +70,10 @@ CREATE TABLE primelist (
 
 DECLARE -- This accomplishes what the above block does, but much slower.
     tableprime INTEGER(6); -- It takes the test number and mods it with previous primes in the table.
-    maxrow     INTEGER(6); -- It also uses another collumn with a sequence, so a new table will be needed.
+    maxrow     INTEGER(6); -- It also uses another column with a sequence, so a new table will be needed.
     currrow    INTEGER(6);
 BEGIN
-    INSERT INTO primelist ( prime ) VALUES ( 2 ); -- We insert the first prime to start
+    INSERT INTO primelist ( prime ) VALUES ( 2 ); -- We insert the first prime to start.
     SELECT seq1.CURRVAL
     INTO currrow
     FROM dual;
@@ -186,8 +184,10 @@ SELECT prime FROM primelist;
 
 -- Below can test for prime using a specific number using values from the table.
 
+SET SERVEROUTPUT ON;
+
 DECLARE 
-    testprime NUMBER(6) := 5;
+    testprime NUMBER(6) := 5313;
     primes    NUMBER(6);
 BEGIN
     INSERT INTO primelist VALUES ( 0 );
@@ -209,4 +209,28 @@ BEGIN
 END;
 
 DROP TABLE primelist PURGE;
+
+--------------------------------------------------------------------------------
+
+-- This is a slight change to the above way of getting primes that doesn't require
+-- a delete. It's the same speed and let's the user define the range.
+
+CREATE TABLE numlist (
+    nums INTEGER
+);
+
+INSERT INTO numlist ( nums )
+    SELECT ROWNUM
+    FROM col$
+    CROSS JOIN (SELECT ROWNUM FROM col$ FETCH FIRST 100 ROWS ONLY)
+    FETCH FIRST 70000 ROWS ONLY; -- Making numlist larger than it needs to be raises query time a lot.
+
+SELECT nums AS "Primes"
+FROM numlist a
+WHERE NOT EXISTS (SELECT b.nums 
+    FROM numlist b
+    WHERE mod(a.nums, b.nums) = 0 AND a.nums > b.nums AND b.nums <> 1) AND a.nums <> 1  -- Checks if a.nums is prime.
+    AND a.nums BETWEEN 1 and 70000; -- Defines our range.
+
+DROP TABLE numlist PURGE;
 
